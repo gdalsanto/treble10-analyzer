@@ -63,7 +63,7 @@ def main(args):
     last_example_by_group = {}
 
     for example in iter(ds):
-        print(example.keys())
+        print(example['audio'].keys())
         room = example["Room"]
         source = example["Source Label"]
         key = (room, source)
@@ -72,7 +72,7 @@ def main(args):
         extras = extras_by_group.setdefault(key, new_extras())
 
         # compute the atf and the atf magnitude
-        rir = example["audio"]["array"]
+        rir = example["audio"]
         print(room, source, rir.shape)
         irlen = rir.shape[0]
         atf = np.fft.rfft(rir, n=irlen)
