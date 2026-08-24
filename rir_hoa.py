@@ -61,7 +61,6 @@ def main(args):
     last_example_by_group = {}
 
     for example in iter(ds):
-        print(example['audio'].keys())
         room = example["Room"]
         source = example["Source Label"]
         key = (room, source)
