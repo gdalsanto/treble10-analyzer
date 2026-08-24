@@ -62,7 +62,8 @@ def main(args):
     extras_by_group = {}
     last_example_by_group = {}
 
-    for example in ds:
+    for example in iter(ds):
+        print(example.keys())
         room = example["Room"]
         source = example["Source Label"]
         key = (room, source)
