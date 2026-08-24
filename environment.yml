@@ -7,3 +7,5 @@ dependencies:
   - pip
   - pip:
       - datasets
+      - torchcodec
+      - torch
