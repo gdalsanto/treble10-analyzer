@@ -1,0 +1,9 @@
+name: treble10-analyzer
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - pip
+  - pip:
+      - datasets
