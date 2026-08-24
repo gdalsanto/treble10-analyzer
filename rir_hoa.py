@@ -34,7 +34,7 @@ def main(args):
     path_to_dataset = resolve_dataset_path(args.path_to_dataset)
     split = args.split
     output_dir = args.output_dir
-    ds = load_dataset(path_to_dataset, streaming=True, split=split)
+    ds = load_dataset(path_to_dataset, streaming=True, split=split, cache_dir="/scratch/work/dalsag1/.cache/huggingface/datasets")
 
     ds = ds.cast_column("audio", Audio(decode=False))
 
