@@ -11,3 +11,7 @@ dependencies:
       - torchcodec
       - torch
       - soundfile
+      - flareverb
+      - matplotlib
+      - ipykernel
+      - ipywidgets
