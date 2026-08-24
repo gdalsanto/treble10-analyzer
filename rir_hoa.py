@@ -59,15 +59,55 @@ def main(args):
             "c_freqs": [],
         }
 
+    def save_room(subsets, extras_by_group, last_example_by_group, fs_by_group):
+        # save one npz file per (room, source) group
+        for key, subset in subsets.items():
+            room, source = key
+            source_id = int(source[-1])
+            last_example = last_example_by_group[key]
+            extras = extras_by_group[key]
+
+            subset["source_position"] = str2list(last_example["Source Position"])
+
+            room_description = last_example["Room Description"]
+            fs = fs_by_group[key]
+            extras["c_freqs"] = str2list(last_example["Frequencies"])
+
+            # save subset as npz file
+            dataset_dir = Path(f"{output_dir}/{split}/{room_description}/")
+            os.makedirs(dataset_dir, exist_ok=True)
+            filename = f"{dataset_dir}/data_s{source_id + 1:04d}.npz"
+            np.savez(
+                filename,
+                rir=np.vstack(subset["rir"]),
+                atf=np.vstack(subset["atf"]),
+                atf_mag=np.vstack(subset["atf_mag"]),
+                posSrc=subset["source_position"],
+                posMic=np.vstack(subset["mic_position"]),
+                fs=fs,
+            )
+
     subsets = {}
     extras_by_group = {}
     last_example_by_group = {}
     fs_by_group = {}
+    current_room = None
 
     for example in iter(ds):
         room = example["Room"]
         source = example["Source Label"]
         key = (room, source)
+
+        # the stream is grouped by room; once a new room starts, the
+        # previous room is complete, so save it and free its memory
+        # before accumulating the next one
+        if current_room is not None and room != current_room:
+            save_room(subsets, extras_by_group, last_example_by_group, fs_by_group)
+            subsets = {}
+            extras_by_group = {}
+            last_example_by_group = {}
+            fs_by_group = {}
+        current_room = room
 
         subset = subsets.setdefault(key, new_subset())
         extras = extras_by_group.setdefault(key, new_extras())
@@ -95,33 +135,8 @@ def main(args):
         extras["c50"].append(str2list(example["C50"]))
         extras["abs_avr"].append(str2list(example["Average Absorption (Octave Band)"]))
 
-    # save one npz file per (room, source) group
-    for key, subset in subsets.items():
-        room, source = key
-        source_id = int(source[-1])
-        last_example = last_example_by_group[key]
-        extras = extras_by_group[key]
-
-        subset["source_position"] = str2list(last_example["Source Position"])
-
-        rt60_avr = last_example["Avg T30"]
-        room_description = last_example["Room Description"]
-        fs = fs_by_group[key]
-        extras["c_freqs"] = str2list(last_example["Frequencies"])
-
-        # save subset as npz file
-        dataset_dir = Path(f"{output_dir}/{split}/{room_description}/")
-        os.makedirs(dataset_dir, exist_ok=True)
-        filename = f"{dataset_dir}/data_s{source_id + 1:04d}.npz"
-        np.savez(
-            filename,
-            rir=np.vstack(subset["rir"]),
-            atf=np.vstack(subset["atf"]),
-            atf_mag=np.vstack(subset["atf_mag"]),
-            posSrc=subset["source_position"],
-            posMic=np.vstack(subset["mic_position"]),
-            fs=fs,
-        )
+    if current_room is not None:
+        save_room(subsets, extras_by_group, last_example_by_group, fs_by_group)
 
 if __name__ == "__main__":
     args = parse_args()
