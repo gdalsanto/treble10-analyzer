@@ -36,7 +36,7 @@ def main(args):
     output_dir = args.output_dir
     ds = load_dataset(path_to_dataset, streaming=True, split=split, cache_dir="/scratch/work/dalsag1/.cache/huggingface/datasets")
 
-    ds = ds.cast_column("audio", Audio(decode=False))
+    ds = ds.cast_column("audio", Audio(decode=True))
 
     # collect all examples, grouped by (room, source) in a single streaming pass
     # for each rir save the rir, the mic position and the source position in a dictionary
@@ -72,7 +72,7 @@ def main(args):
         extras = extras_by_group.setdefault(key, new_extras())
 
         # compute the atf and the atf magnitude
-        rir = example["audio"]
+        rir = example["audio"]['array']
         print(room, source, rir.shape)
         irlen = rir.shape[0]
         atf = np.fft.rfft(rir, n=irlen)
