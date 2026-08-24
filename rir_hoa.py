@@ -50,28 +50,17 @@ def main(args):
             "source_position": [],
         }
 
-    def new_extras():
-        return {
-            "rt60": [],
-            "edt": [],
-            "c50": [],
-            "abs_avr": [],
-            "c_freqs": [],
-        }
-
-    def save_room(subsets, extras_by_group, last_example_by_group, fs_by_group):
+    def save_room(subsets, last_example_by_group, fs_by_group):
         # save one npz file per (room, source) group
         for key, subset in subsets.items():
             room, source = key
             source_id = int(source[-1])
             last_example = last_example_by_group[key]
-            extras = extras_by_group[key]
 
             subset["source_position"] = str2list(last_example["Source Position"])
 
             room_description = last_example["Room Description"]
             fs = fs_by_group[key]
-            extras["c_freqs"] = str2list(last_example["Frequencies"])
 
             # save subset as npz file
             dataset_dir = Path(f"{output_dir}/{split}/{room_description}/")
@@ -88,7 +77,6 @@ def main(args):
             )
 
     subsets = {}
-    extras_by_group = {}
     last_example_by_group = {}
     fs_by_group = {}
     current_room = None
@@ -102,15 +90,13 @@ def main(args):
         # previous room is complete, so save it and free its memory
         # before accumulating the next one
         if current_room is not None and room != current_room:
-            save_room(subsets, extras_by_group, last_example_by_group, fs_by_group)
+            save_room(subsets, last_example_by_group, fs_by_group)
             subsets = {}
-            extras_by_group = {}
             last_example_by_group = {}
             fs_by_group = {}
         current_room = room
 
         subset = subsets.setdefault(key, new_subset())
-        extras = extras_by_group.setdefault(key, new_extras())
 
         # decode the raw audio bytes ourselves (libsndfile handles arbitrary
         # channel counts, unlike torchcodec/FFmpeg which chokes on the
@@ -129,14 +115,9 @@ def main(args):
         subset["mic_position"].append(tuple(str2list(example["Receiver Position"])))
         # log last example
         last_example_by_group[key] = example
-        # log extras
-        extras["rt60"].append(str2list(example["T30"]))
-        extras["edt"].append(str2list(example["EDT"]))
-        extras["c50"].append(str2list(example["C50"]))
-        extras["abs_avr"].append(str2list(example["Average Absorption (Octave Band)"]))
 
     if current_room is not None:
-        save_room(subsets, extras_by_group, last_example_by_group, fs_by_group)
+        save_room(subsets, last_example_by_group, fs_by_group)
 
 if __name__ == "__main__":
     args = parse_args()
