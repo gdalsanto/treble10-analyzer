@@ -8,6 +8,20 @@ def str2list (s):
 	return [float(x) for x in s.strip('[]').split(',')]
 
 
+def resolve_dataset_path(path):
+    """If path is a huggingface_hub cache-style download (blobs/refs/snapshots),
+    resolve it to the actual repo snapshot dir so `datasets` can see the
+    README.md split/config metadata. Otherwise return path unchanged."""
+    path = Path(path)
+    ref_main = path / "refs" / "main"
+    if ref_main.is_file():
+        commit_hash = ref_main.read_text().strip()
+        snapshot_dir = path / "snapshots" / commit_hash
+        if snapshot_dir.is_dir():
+            return str(snapshot_dir)
+    return str(path)
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--path_to_dataset", type=str, default="/scratch/elec/t412-asp/Treble10-RIR")
@@ -17,7 +31,7 @@ def parse_args():
 
 
 def main(args):
-    path_to_dataset = args.path_to_dataset
+    path_to_dataset = resolve_dataset_path(args.path_to_dataset)
     split = args.split
     output_dir = args.output_dir
     ds = load_dataset(path_to_dataset, streaming=True, split=split)
@@ -31,7 +45,7 @@ def main(args):
             "rir": [],
             "atf": [],
             "atf_mag": [],
-            "mic_position": [],
+            "mic_position": [], 
             "source_position": [],
         }
 
