@@ -1,6 +1,8 @@
 import argparse
+import io
 import os
 import numpy as np
+import soundfile as sf
 from pathlib import Path
 from datasets import load_dataset, Audio
 
@@ -35,6 +37,7 @@ def main(args):
     split = args.split
     output_dir = args.output_dir
     ds = load_dataset(path_to_dataset, streaming=True, split=split, cache_dir="/scratch/work/dalsag1/.cache/huggingface/datasets")
+    ds = ds.cast_column("audio", Audio(decode=False))
 
     # collect all examples, grouped by (room, source) in a single streaming pass
     # for each rir save the rir, the mic position and the source position in a dictionary
@@ -59,6 +62,7 @@ def main(args):
     subsets = {}
     extras_by_group = {}
     last_example_by_group = {}
+    fs_by_group = {}
 
     for example in iter(ds):
         room = example["Room"]
@@ -68,11 +72,15 @@ def main(args):
         subset = subsets.setdefault(key, new_subset())
         extras = extras_by_group.setdefault(key, new_extras())
 
-        # compute the atf and the atf magnitude
-        rir = example["audio"]['array']
+        # decode the raw audio bytes ourselves (libsndfile handles arbitrary
+        # channel counts, unlike torchcodec/FFmpeg which chokes on the
+        # 81-channel HOA8 layout)
+        rir, fs = sf.read(io.BytesIO(example["audio"]["bytes"]), always_2d=False)
+        fs_by_group[key] = fs
         print(room, source, rir.shape)
         irlen = rir.shape[0]
-        atf = np.fft.rfft(rir, n=irlen)
+        # compute the atf and the atf magnitude
+        atf = np.fft.rfft(rir, n=irlen, axis=0)
         atf_mag = 20 * np.log10(np.abs(atf))
         # save data
         subset["rir"].append(rir)
@@ -98,7 +106,7 @@ def main(args):
 
         rt60_avr = last_example["Avg T30"]
         room_description = last_example["Room Description"]
-        fs = last_example["audio"]["sampling_rate"]
+        fs = fs_by_group[key]
         extras["c_freqs"] = str2list(last_example["Frequencies"])
 
         # save subset as npz file
