@@ -131,6 +131,8 @@ def plot_t60_histograms(omni_records, sector_records, output_dir, t60_max=5.0):
         t_slow = np.clip([r["t_slow"] for r in records], 0, t60_max)
         ax.hist(t_fast, bins=bins, alpha=0.6, label="fast slope", color="tab:blue")
         ax.hist(t_slow, bins=bins, alpha=0.6, label="slow slope", color="tab:orange")
+        # set the maximum of the y-axis to the maximum of the two histograms
+        ax.set_ylim(0, max(ax.get_ylim()[1], 1)*1.1)
         ax.set_xlabel("T60 [s]")
         ax.set_title(title)
         ax.legend()
@@ -140,20 +142,27 @@ def plot_t60_histograms(omni_records, sector_records, output_dir, t60_max=5.0):
     fig.savefig(Path(output_dir) / "t60_histograms.png", dpi=150)
     plt.close(fig)
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
-    for ax, records, title in zip(axes, [omni_records, sector_records], ["Omnidirectional channel", "Spatial sectors"]):
-        rooms = sorted(set(r["room"] for r in records))
-        fractions = []
-        for room in rooms:
-            room_records = [r for r in records if r["room"] == room]
-            fractions.append(100 * sum(is_double_slope(r) for r in room_records) / len(room_records))
-        ax.barh(rooms, fractions, color="tab:green")
-        ax.set_xlabel("Double-slope RIRs [%]")
-        ax.set_title(title)
-    fig.suptitle("Fraction of RIRs classified as double-slope, per room")
-    fig.tight_layout()
-    fig.savefig(Path(output_dir) / "double_slope_fraction_by_room.png", dpi=150)
-    plt.close(fig)
+
+def summarize_t60_by_room(records, domain):
+    """Per-room double-slope fraction plus median/std of the fast/slow T60 histograms."""
+    rooms = sorted(set(r["room"] for r in records))
+    summary = []
+    for room in rooms:
+        room_records = [r for r in records if r["room"] == room]
+        t_fast = np.array([r["t_fast"] for r in room_records])
+        t_slow = np.array([r["t_slow"] for r in room_records])
+        n_double = sum(is_double_slope(r) for r in room_records)
+        summary.append({
+            "domain": domain,
+            "room": room,
+            "n_records": len(room_records),
+            "double_slope_fraction": 100 * n_double / len(room_records),
+            "t_fast_median": np.median(t_fast),
+            "t_fast_std": np.std(t_fast),
+            "t_slow_median": np.median(t_slow),
+            "t_slow_std": np.std(t_slow),
+        })
+    return summary
 
 
 def parse_args():
@@ -181,8 +190,11 @@ def main(args):
     summarize_by_room(omni_records, "Omnidirectional channel")
     summarize_by_room(sector_records, "Spatial sectors")
 
+    room_summary = summarize_t60_by_room(omni_records, "omni") + summarize_t60_by_room(sector_records, "sector")
+    write_csv(room_summary, output_dir / "t60_summary_by_room.csv")
+
     plot_t60_histograms(omni_records, sector_records, output_dir)
-    print(f"\nSaved CSVs and histogram plots to {output_dir}")
+    print(f"\nSaved CSVs and histogram plot to {output_dir}")
 
 
 if __name__ == "__main__":
