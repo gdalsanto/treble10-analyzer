@@ -4,10 +4,13 @@
 
 This repository contains tools to download, convert, and analyze the Treble10-RIR dataset.
 `rir_hoa.py` streams the dataset from Huggingface and saves the RIRs, mic/source positions,
-and transfer functions as per-room/source `.npz` files. `analysis.py` provides functions for
-common room-acoustic analysis (energy decay curves, RT60, clarity/definition parameters, echo
-density) and `edc_explorer.ipynb` is a notebook for interactively visualizing the energy decay
-curve per frequency band for a chosen `.npz` file.
+and transfer functions as per-room/source `.npz` files. The `treble10_analyzer` package
+provides reusable functions for room-acoustic analysis: `analysis.py` (energy decay curves,
+RT60, clarity/definition parameters, echo density), `rir_io.py` (loading `rir_hoa.py` `.npz`
+files), `sh_sectors.py` (ambisonics spatial-sector beamforming), `decay.py` (multislope T60
+decay analysis), and `reporting.py` (CSV/plot summaries). `t60_analysis.py` is a CLI script
+built on top of these modules, and `edc_explorer.ipynb` is a notebook for interactively
+visualizing the energy decay curve per frequency band for a chosen `.npz` file.
 
 
 The dataset is on [Huggingface](https://huggingface.co/datasets/treble-technologies/Treble10-RIR). 

@@ -34,4 +34,5 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-include = ["analysis.py", "rir_hoa.py", "t60_analysis.py"]
+packages = ["treble10_analyzer"]
+include = ["rir_hoa.py", "t60_analysis.py"]
