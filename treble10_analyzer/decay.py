@@ -2,11 +2,13 @@ from pathlib import Path
 
 import multislope
 import numpy as np
+import onnxruntime
 
 from .rir_io import load_rir_file
 from .sh_sectors import build_sector_matrix, resolve_sh_order
 
 DOUBLE_SLOPE_TIME_RATIO = 1.5
+onnxruntime.set_default_logger_severity(4)
 
 
 def broadband_edc(x):
@@ -99,11 +101,7 @@ def analyze_directory_bayesian(data_dir, sh_order=None, max_files=None, n_iterat
     Unlike `analyze_directory` (which fits a fixed n_slopes with the trained
     DecayFitNet), this uses multislope's BayesianDecayAnalysis with
     n_slopes=0, so the model order is picked per RIR by the Bayesian
-    information criterion. Bayesian slice sampling is orders of magnitude
-    slower than DecayFitNet, so expect this to dominate runtime once sectors
-    are included too. `sh_order` optionally truncates the sector beamformer
-    to a lower ambisonics order (see `analyze_directory`), which also cuts
-    down that cost since fewer sectors are needed at a lower order.
+    information criterion.
     """
     npz_files = sorted(Path(data_dir).rglob("*.npz"))
     if max_files is not None:

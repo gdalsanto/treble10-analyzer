@@ -16,6 +16,7 @@ dependencies = [
     "matplotlib",
     "pyfar",
     "multislope",
+    "onnxruntime",
     "spaudiopy"
 ]
 
