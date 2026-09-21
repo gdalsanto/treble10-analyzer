@@ -1,16 +1,38 @@
 # treble10-analyzer
 
-## Content 
+## Content
 
 This repository contains tools to download, convert, and analyze the Treble10-RIR dataset.
-`rir_hoa.py` streams the dataset from Huggingface and saves the RIRs, mic/source positions,
-and transfer functions as per-room/source `.npz` files. The `treble10_analyzer` package
-provides reusable functions for room-acoustic analysis: `analysis.py` (energy decay curves,
-RT60, clarity/definition parameters, echo density), `rir_io.py` (loading `rir_hoa.py` `.npz`
-files), `sh_sectors.py` (ambisonics spatial-sector beamforming), `decay.py` (multislope T60
-decay analysis), and `reporting.py` (CSV/plot summaries). `t60_analysis.py` is a CLI script
-built on top of these modules, and `edc_explorer.ipynb` is a notebook for interactively
-visualizing the energy decay curve per frequency band for a chosen `.npz` file.
+
+### Structure
+
+```
+treble10-analyzer/
+├── rir_hoa.py              # step 1: Treble10-RIR (Huggingface) -> per-room/source .npz files
+├── t60_analysis.py         # step 2: CLI running the decay analysis and writing CSVs/plots
+├── edc_explorer.ipynb      # notebook to inspect the EDC per frequency band of one .npz file
+└── treble10_analyzer/      # reusable analysis package
+    ├── rir_io.py           # load a rir_hoa.py .npz file as (n_mics, n_samples, n_hoa)
+    ├── sh_sectors.py       # ambisonics -> spatial-sector beamforming (t-design), SH-order handling
+    ├── decay.py            # multislope decay analysis: fixed n_slopes and Bayesian (BIC) slope count
+    ├── reporting.py        # CSV writing, per-room summaries, T60 histograms
+    └── analysis.py         # EDC/EDR, RT60, clarity/definition, echo density and mixing time
+```
+
+**Pipeline**
+
+1. `rir_hoa.py` streams the dataset from Huggingface and saves the RIRs, mic/source positions and
+   transfer functions as `<output_dir>/<split>/<room_description>/data_sXXXX.npz` (one file per room/source).
+2. `t60_analysis.py --data_dir <dir>` processes each subfolder of `<dir>` (searched recursively for `.npz` files)
+   and, for each one, analyzes the omnidirectional (first ambisonics) channel and the spatial-sector signals
+   obtained with `sh_sectors.py`. Decay times are estimated with `multislope` in `decay.py`
+   (`--n_slopes` fixed slopes, plus a slower Bayesian slope-count analysis unless `--skip_bayesian` is given).
+   `--sh_order` truncates the ambisonics order before beamforming and `--max_files` limits the run for a quick test.
+3. `reporting.py` writes the results to `<output_dir>/<subfolder>/`: `omni_t60.csv`, `sector_t60.csv`,
+   `t60_summary_by_room.csv`, a T60 histogram plot and, unless skipped, `bayesian_omni_t60.csv`,
+   `bayesian_sector_t60.csv` and `bayesian_slope_counts_by_room.csv`.
+
+`analysis.py` is a standalone toolbox of general room-acoustic functions; it is used by `edc_explorer.ipynb`, not by the CLI.
 
 
 The dataset is on [Huggingface](https://huggingface.co/datasets/treble-technologies/Treble10-RIR). 
