@@ -5,7 +5,7 @@ MAX_T_DESIGN_DEGREE = 21  # spa.grids.load_t_design only has designs up to this 
 
 
 def build_sector_matrix(sh_order):
-    """SH -> spatial-sector matrix, following `sector_edc_loss.sh2sec` in loss.py.
+    """SH -> spatial-sector matrix
 
     Uses the smallest t-design valid for `sh_order`, i.e. degree 2*sh_order
     (the minimum required for exact SH quadrature over the sector grid).
@@ -26,8 +26,7 @@ def resolve_sh_order(n_hoa, requested_sh_order):
     """The recording's native ambisonics order, and the order to actually use for sectors.
 
     Passing a smaller `requested_sh_order` truncates the ACN/SH channels before
-    the sector beamformer, trading spatial resolution for a coarser (and,
-    for the Bayesian analysis, much cheaper) sector decomposition.
+    the sector beamformer, trading spatial resolution for a coarser sector decomposition.
     """
     native_sh_order = round(np.sqrt(n_hoa)) - 1
     if requested_sh_order is None:
